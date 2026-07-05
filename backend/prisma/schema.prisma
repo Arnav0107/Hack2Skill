@@ -1,0 +1,175 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  role         String        // msme, bank_officer, admin
+  createdAt    DateTime      @default(now()) @map("created_at")
+  msmeProfiles MSMEProfile[]
+
+  @@map("users")
+}
+
+model MSMEProfile {
+  id                      String             @id @default(uuid())
+  userId                  String             @map("user_id")
+  user                    User               @relation(fields: [userId], references: [id])
+  businessName            String             @map("business_name")
+  gstin                   String?
+  sector                  String?
+  registrationType        String?            @map("registration_type")
+  region                  String?
+  employeeBand            String?            @map("employee_band")
+  registeredOn            DateTime?          @map("registered_on")
+  createdAt               DateTime           @default(now()) @map("created_at")
+
+  // ML credit-scoring fields
+  promoterCreditScore     Int                @default(650)  @map("promoter_credit_score")
+  commercialAssetsValue   Float              @default(0)    @map("commercial_assets_value")
+  bankAssetValue          Float              @default(0)    @map("bank_asset_value")
+  aaLinkedAccountsCount   Int                @default(1)    @map("aa_linked_accounts_count")
+  registrationDate        DateTime           @default(now()) @map("registration_date")
+
+  consents          Consent[]
+  gstFilings        GSTFiling[]
+  upiTransactions   UPITransaction[]
+  epfoRecords       EPFORecord[]
+  scores            Score[]
+  fraudFlags        FraudFlag[]
+  journeyMilestones JourneyMilestone[]
+
+  @@map("msme_profiles")
+}
+
+model Consent {
+  id            String      @id @default(uuid())
+  msmeId        String      @map("msme_id")
+  msme          MSMEProfile @relation(fields: [msmeId], references: [id])
+  dataSource    String      @map("data_source") // gst, upi, epfo
+  consented     Boolean     @default(true)
+  consentedAt   DateTime    @default(now()) @map("consented_at")
+
+  @@map("consents")
+}
+
+model GSTFiling {
+  id            String      @id @default(uuid())
+  msmeId        String      @map("msme_id")
+  msme          MSMEProfile @relation(fields: [msmeId], references: [id])
+  period        DateTime
+  filedOnTime   Boolean     @map("filed_on_time")
+  turnover      Float
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@map("gst_filings")
+}
+
+model UPITransaction {
+  id            String      @id @default(uuid())
+  msmeId        String      @map("msme_id")
+  msme          MSMEProfile @relation(fields: [msmeId], references: [id])
+  txnDate       DateTime    @map("txn_date")
+  txnType       String      @map("txn_type") // credit, debit
+  amount        Float
+  flaggedLarge  Boolean     @default(false) @map("flagged_large")
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@map("upi_transactions")
+}
+
+model EPFORecord {
+  id              String      @id @default(uuid())
+  msmeId          String      @map("msme_id")
+  msme            MSMEProfile @relation(fields: [msmeId], references: [id])
+  period          DateTime
+  employeeCount   Int         @map("employee_count")
+  contributionPaid Boolean    @map("contribution_paid")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  @@map("epfo_records")
+}
+
+model Score {
+  id            String           @id @default(uuid())
+  msmeId        String           @map("msme_id")
+  msme          MSMEProfile      @relation(fields: [msmeId], references: [id])
+  score         Int
+  band          String           // poor, fair, good, excellent
+  isProvisional Boolean          @default(false) @map("is_provisional")
+  alpha         Float
+  modelVersion  String           @default("stub-v0") @map("model_version")
+  computedAt    DateTime         @default(now()) @map("computed_at")
+  breakdowns    ScoreBreakdown[]
+  auditRecords  AuditRecord[]
+
+  @@map("scores")
+}
+
+model ScoreBreakdown {
+  id          String   @id @default(uuid())
+  scoreId     String   @map("score_id")
+  score       Score    @relation(fields: [scoreId], references: [id])
+  cardLabel   String   @map("card_label")
+  value       Int
+  explanation String?
+
+  @@map("score_breakdown")
+}
+
+model FraudFlag {
+  id            String      @id @default(uuid())
+  msmeId        String      @map("msme_id")
+  msme          MSMEProfile @relation(fields: [msmeId], references: [id])
+  ruleTriggered String      @map("rule_triggered")
+  severity      String      // low, medium, high
+  description   String?
+  detectedAt    DateTime    @default(now()) @map("detected_at")
+
+  @@map("fraud_flags")
+}
+
+model JourneyMilestone {
+  id                String      @id @default(uuid())
+  msmeId            String      @map("msme_id")
+  msme              MSMEProfile @relation(fields: [msmeId], references: [id])
+  stage             String      // provisional, emerging, established, fully_scored
+  nextAction        String?     @map("next_action")
+  projectedScoreLow Int         @map("projected_score_low")
+  projectedScoreHigh Int        @map("projected_score_high")
+  updatedAt         DateTime    @default(now()) @map("updated_at")
+
+  @@map("journey_milestones")
+}
+
+model AuditRecord {
+  id            String   @id @default(uuid())
+  scoreId       String   @map("score_id")
+  score         Score    @relation(fields: [scoreId], references: [id])
+  payloadHash   String   @map("payload_hash")
+  ipfsCid       String   @map("ipfs_cid")
+  chainTxHash   String   @map("chain_tx_hash")
+  chainNetwork  String   @default("polygon-amoy") @map("chain_network")
+  anchoredAt    DateTime @default(now()) @map("anchored_at")
+
+  @@map("audit_records")
+}
+
+model SectorPrior {
+  id              String  @id @default(uuid())
+  sector          String?
+  region          String?
+  employeeBand    String? @map("employee_band")
+  priorScoreMean  Int     @map("prior_score_mean")
+  priorScoreStd   Int     @map("prior_score_std")
+  sampleSize      Int     @map("sample_size")
+
+  @@map("sector_priors")
+}
