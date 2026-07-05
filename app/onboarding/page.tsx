@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { submitBusinessInfo, submitConsent, connectDataSource, generateScore } from "@/lib/api";
 import { SECTORS, REGISTRATION_TYPES } from "@/lib/mockData";
 import SourceIcon from "@/components/ui/SourceIcon";
+import { useAuth } from "@/lib/auth";
 
 const STEPS = ["Business Info", "Data Consent", "Connect Sources", "Generating Score"];
 
@@ -34,11 +35,13 @@ const DATA_SOURCES: { id: SourceId; label: string; description: string }[] = [
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { updateUserName } = useAuth();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
   const [animating, setAnimating] = useState(false);
 
   // Form state
+  const [gstin, setGstin] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [sector, setSector] = useState("");
   const [registrationType, setRegistrationType] = useState("");
@@ -56,9 +59,8 @@ export default function OnboardingPage() {
   const [progress, setProgress] = useState(0);
 
   const goToStep = (next: number) => {
-    if (animating) return;
-    setDirection(next > step ? "forward" : "back");
     setAnimating(true);
+    setDirection(next > step ? "forward" : "back");
     setTimeout(() => {
       setStep(next);
       setAnimating(false);
@@ -67,6 +69,11 @@ export default function OnboardingPage() {
 
   const validateStep1 = () => {
     const e: Record<string, string> = {};
+    if (!gstin.trim()) {
+      e.gstin = "GSTIN is required.";
+    } else if (!/^[a-zA-Z0-9]{15}$/.test(gstin)) {
+      e.gstin = "GSTIN must be exactly 15 alphanumeric characters.";
+    }
     if (!businessName.trim()) e.businessName = "Business name is required.";
     if (!sector) e.sector = "Please select a sector.";
     if (!registrationType) e.registrationType = "Please select a registration type.";
@@ -76,8 +83,13 @@ export default function OnboardingPage() {
 
   const handleStep1Next = async () => {
     if (!validateStep1()) return;
-    await submitBusinessInfo({ businessName, sector, registrationType });
-    goToStep(1);
+    try {
+      await submitBusinessInfo({ businessName, sector, registrationType, gstin });
+      updateUserName(businessName);
+      goToStep(1);
+    } catch (err: any) {
+      setErrors({ api: err.message || "Failed to submit business details" });
+    }
   };
 
   const handleStep2Next = async () => {
@@ -271,6 +283,20 @@ export default function OnboardingPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "1.125rem" }}>
                 <div>
+                   <label className="eyebrow" style={{ display: "block", marginBottom: "0.4rem", color: "#6B6259" }}>
+                     GSTIN Number
+                   </label>
+                   <input
+                     className="input-field"
+                     type="text"
+                     placeholder="e.g. 27ABCDE1234F1Z5"
+                     value={gstin}
+                     onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                   />
+                   {errors.gstin && <p style={{ fontFamily: "Inter", fontSize: "0.72rem", color: "#8B3A3A", margin: "0.25rem 0 0" }}>{errors.gstin}</p>}
+                </div>
+
+                <div>
                   <label className="eyebrow" style={{ display: "block", marginBottom: "0.4rem", color: "#6B6259" }}>
                     Business Name
                   </label>
@@ -306,6 +332,8 @@ export default function OnboardingPage() {
                   {errors.registrationType && <p style={{ fontFamily: "Inter", fontSize: "0.72rem", color: "#8B3A3A", margin: "0.25rem 0 0" }}>{errors.registrationType}</p>}
                 </div>
               </div>
+
+              {errors.api && <p style={{ fontFamily: "Inter", fontSize: "0.72rem", color: "#8B3A3A", margin: "0.75rem 0 0", textAlign: "center" }}>{errors.api}</p>}
 
               <button className="btn-primary" onClick={handleStep1Next} style={{ marginTop: "2rem", width: "100%", justifyContent: "center" }}>
                 Continue →

@@ -8,10 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 export type ScoreBand = "poor" | "fair" | "good" | "excellent";
 
 export function getBandFromScore(score: number): ScoreBand {
-  if (score < 400) return "poor"; // matching scale 300-900 (legacy <40 is handled by fallback)
-  if (score < 60) return "poor"; // compatibility with legacy low numbers if any
-  if (score < 600) return "fair";
-  if (score < 750) return "good";
+  if (score < 40) return "poor";
+  if (score < 60) return "fair";
+  if (score < 80) return "good";
   return "excellent";
 }
 

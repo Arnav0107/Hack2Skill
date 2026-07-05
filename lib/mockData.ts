@@ -29,8 +29,11 @@ export interface MSMERecord {
   businessName: string;
   sector: string;
   registrationType: string;
+  gstin?: string;
   score: number;
   band: ScoreBand;
+  isProvisional?: boolean;
+  loanEligibility?: { min: number; max: number; eligible: boolean; label: string; color: string; };
   dataCompleteness: { connected: number; total: number };
   dataSources: DataSource[];
   blockchainVerified: boolean;
@@ -57,6 +60,7 @@ export interface AuditRecord {
   inputsHash: string;
   blockHash: string;
   transactionId: string;
+  ipfsCid?: string;
 }
 
 export interface BankOfficer {

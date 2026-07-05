@@ -18,7 +18,7 @@ export default function AuditPage() {
   const [record, setRecord] = useState<AuditRecord | null>(null);
   const [fetching, setFetching] = useState(true);
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState<boolean | null>(null);
+  const [verifyResult, setVerifyResult] = useState<{ verified: boolean; hash: string } | null>(null);
 
   useEffect(() => {
     getAuditRecord(auditId).then((r) => {
@@ -30,9 +30,9 @@ export default function AuditPage() {
   const handleVerify = async () => {
     if (!record || verifying) return;
     setVerifying(true);
-    setVerified(null);
+    setVerifyResult(null);
     const result = await verifyAuditHash(auditId);
-    setVerified(result.verified);
+    setVerifyResult(result);
     setVerifying(false);
   };
 
@@ -197,11 +197,45 @@ export default function AuditPage() {
               {[
                 { label: "MSME ID", value: record.msmeId, mono: false },
                 { label: "Timestamp", value: formatDatetime(record.timestamp), mono: false },
-                { label: "Model Version", value: record.modelVersion, mono: false },
-                { label: "Transaction ID", value: record.transactionId, mono: true },
+                { label: "Model Version", value: record.modelVersion || "FHC-v1.0-hackathon", mono: false },
+                {
+                  label: "Transaction ID",
+                  value: (
+                    <a 
+                      href={`https://amoy.polygonscan.com/tx/${record.transactionId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-700 underline break-all hover:text-amber-900"
+                      style={{ color: "#8B6914", textDecoration: "underline" }}
+                    >
+                      {record.transactionId}
+                    </a>
+                  ),
+                  mono: true
+                },
+                {
+                  label: "IPFS Record",
+                  value: (
+                    <>
+                      <span className="font-mono text-sm">
+                        {record.ipfsCid?.slice(0, 20)}...
+                      </span>
+                      <a 
+                        href={`https://ipfs.io/ipfs/${record.ipfsCid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 text-amber-700 underline text-sm"
+                        style={{ color: "#8B6914", textDecoration: "underline", marginLeft: "0.5rem" }}
+                      >
+                        VIEW ON IPFS ↗
+                      </a>
+                    </>
+                  ),
+                  mono: false
+                },
                 { label: "Block Hash", value: record.blockHash, mono: true },
                 { label: "Inputs Hash", value: record.inputsHash, mono: true },
-              ].map((row, i) => (
+              ].map((row, i, arr) => (
                 <div
                   key={row.label}
                   style={{
@@ -210,7 +244,7 @@ export default function AuditPage() {
                     alignItems: "flex-start",
                     gap: "1.5rem",
                     padding: "0.75rem 0",
-                    borderBottom: i < 5 ? "1px solid rgba(201,166,107,0.12)" : "none",
+                    borderBottom: i < arr.length - 1 ? "1px solid rgba(201,166,107,0.12)" : "none",
                   }}
                 >
                   <span
@@ -279,42 +313,29 @@ export default function AuditPage() {
               </button>
             </div>
 
-            {/* Verification result */}
-            {verified !== null && (
-              <div
-                style={{
-                  marginTop: "1rem",
-                  padding: "0.875rem 1rem",
-                  backgroundColor: verified ? "#E5EDE9" : "#F5EAEA",
-                  border: `1px solid ${verified ? "rgba(27,58,47,0.2)" : "rgba(139,58,58,0.2)"}`,
-                  borderRadius: "4px",
-                  animation: "fadeIn 0.4s cubic-bezier(0.22,1,0.36,1) both",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: "0.625rem",
-                }}
-              >
-                <span style={{ fontSize: "1rem", flexShrink: 0 }}>
-                  {verified ? "✓" : "✗"}
-                </span>
-                <div>
-                  <p
-                    style={{
-                      fontFamily: "Inter, sans-serif",
-                      fontSize: "0.82rem",
-                      fontWeight: 600,
-                      color: verified ? "#1B3A2F" : "#8B3A3A",
-                      margin: "0 0 0.25rem",
-                    }}
-                  >
-                    {verified ? "Hash verified — record is authentic" : "Verification failed — record may have been altered"}
-                  </p>
-                  <p style={{ fontFamily: "Inter, sans-serif", fontSize: "0.72rem", color: verified ? "#3E6B45" : "#8B3A3A", margin: 0, lineHeight: 1.5 }}>
-                    {verified
-                      ? "The computed hash matches the on-chain record exactly. This score was issued without modification."
-                      : "The computed hash does not match. Please contact your bank officer immediately."}
-                  </p>
-                </div>
+            {verifying && (
+              <p className="text-sm text-amber-700 mt-2" style={{ color: "#8B6914", fontSize: "0.875rem", marginTop: "0.5rem" }}>
+                Verifying on-chain record...
+              </p>
+            )}
+            {verifyResult && (
+              <div className={`mt-3 p-3 rounded text-sm font-medium ${
+                verifyResult.verified 
+                  ? "bg-green-50 text-green-700 border border-green-200" 
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`} style={{
+                marginTop: "0.75rem",
+                padding: "0.75rem",
+                borderRadius: "4px",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                backgroundColor: verifyResult.verified ? "#f0fdf4" : "#fef2f2",
+                color: verifyResult.verified ? "#15803d" : "#b91c1c",
+                border: `1px solid ${verifyResult.verified ? "#bbf7d0" : "#fecaca"}`
+              }}>
+                {verifyResult.verified 
+                  ? "✅ Hash Verified — Score Integrity Confirmed" 
+                  : "❌ Hash Mismatch — Integrity Breach Detected"}
               </div>
             )}
           </div>

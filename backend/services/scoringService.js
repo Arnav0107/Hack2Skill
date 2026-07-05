@@ -85,8 +85,28 @@ function computeJourneyStub(dataPointsAvailable) {
   };
 }
 
+function computeTrustScore(hasFraud, connectedSourcesCount) {
+  let score;
+  let explanation;
+  
+  if (hasFraud) {
+    score = 35;
+    explanation = "Risk flags detected. Identity verification compromised or unusual patterns found.";
+  } else if (connectedSourcesCount === 4) {
+    score = 85;
+    explanation = "No risk flags detected and all financial data sources successfully connected.";
+  } else {
+    score = 65;
+    explanation = "No risk flags detected. Connect all data sources to establish full digital trust.";
+  }
+
+  return { score, explanation };
+}
+
 module.exports = {
   computeStubScore,
   computeJourneyStub,
-  scoreToBand
+  scoreToBand,
+  computeTrustScore
 };
+

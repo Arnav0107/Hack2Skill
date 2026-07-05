@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { getCurrentMSMEDashboard } from "@/lib/api";
+import { getCurrentMSMEDashboard, getCreditJourney, type CreditJourney } from "@/lib/api";
 import type { MSMERecord } from "@/lib/mockData";
 import Navbar from "@/components/layout/Navbar";
 import ScoreGauge from "@/components/ui/ScoreGauge";
@@ -19,6 +19,7 @@ export default function MSMEDashboard() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<MSMERecord | null>(null);
+  const [journey, setJourney] = useState<CreditJourney | null>(null);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
@@ -35,7 +36,10 @@ export default function MSMEDashboard() {
           router.push("/onboarding");
         } else {
           setData(d);
-          setFetching(false);
+          getCreditJourney(d.id)
+            .then((j) => setJourney(j))
+            .catch((err) => console.error("Journey fetch failed", err))
+            .finally(() => setFetching(false));
         }
       })
       .catch((err) => {
@@ -103,18 +107,27 @@ export default function MSMEDashboard() {
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
                 <StatusPill label={data.sector} variant="gold" />
                 <StatusPill label={data.registrationType} variant="neutral" />
-                {data.blockchainVerified && (
-                  <StatusPill
-                    label="Blockchain Verified"
-                    variant="verified"
-                    icon={
-                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                        <polyline points="1.5,4.5 3.5,6.5 7.5,2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    }
-                  />
+                {data.isProvisional ? (
+                  <StatusPill label="Provisional Score" variant="neutral" />
+                ) : (
+                  data.blockchainVerified && (
+                    <StatusPill
+                      label="Blockchain Verified"
+                      variant="verified"
+                      icon={
+                        <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                          <polyline points="1.5,4.5 3.5,6.5 7.5,2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      }
+                    />
+                  )
                 )}
               </div>
+              {data.gstin && (
+                <p style={{ fontFamily: "Inter, sans-serif", fontSize: "0.75rem", color: "#9B9188", margin: "0.5rem 0 0" }}>
+                  GSTIN: {data.gstin}
+                </p>
+              )}
             </div>
             <Link
               href={`/audit/${data.auditId}`}
@@ -198,6 +211,89 @@ export default function MSMEDashboard() {
           </div>
         </section>
 
+        {/* Loan Eligibility Banner */}
+        {data.loanEligibility && (
+          <div
+            style={{
+              marginBottom: "2.5rem",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "6px",
+              border: `1px solid ${
+                data.loanEligibility.color === "green"
+                  ? "rgba(34, 197, 94, 0.3)"
+                  : data.loanEligibility.color === "amber"
+                  ? "rgba(245, 158, 11, 0.3)"
+                  : "rgba(239, 68, 68, 0.3)"
+              }`,
+              backgroundColor:
+                data.loanEligibility.color === "green"
+                  ? "rgba(240, 253, 244, 0.8)"
+                  : data.loanEligibility.color === "amber"
+                  ? "rgba(255, 251, 235, 0.8)"
+                  : "rgba(254, 242, 242, 0.8)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <div>
+              <p
+                className="eyebrow"
+                style={{
+                  margin: "0 0 0.25rem 0",
+                  color:
+                    data.loanEligibility.color === "green"
+                      ? "#15803d"
+                      : data.loanEligibility.color === "amber"
+                      ? "#b45309"
+                      : "#b91c1c",
+                }}
+              >
+                Estimated Loan Eligibility Range
+              </p>
+              <p
+                style={{
+                  fontFamily: "Playfair Display, serif",
+                  fontSize: "1.25rem",
+                  fontWeight: 600,
+                  margin: 0,
+                  color: "#3A342C",
+                }}
+              >
+                {data.loanEligibility.label}
+              </p>
+            </div>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                backgroundColor:
+                  data.loanEligibility.color === "green"
+                    ? "#dcfce7"
+                    : data.loanEligibility.color === "amber"
+                    ? "#fef3c7"
+                    : "#fee2e2",
+                color:
+                  data.loanEligibility.color === "green"
+                    ? "#15803d"
+                    : data.loanEligibility.color === "amber"
+                    ? "#b45309"
+                    : "#b91c1c",
+                fontWeight: "bold",
+                fontSize: "0.875rem",
+              }}
+            >
+              {data.loanEligibility.eligible ? "✓" : "✗"}
+            </span>
+          </div>
+        )}
+
         {/* Trend chart */}
         <section className="card-static" style={{ padding: "1.5rem", marginBottom: "2.5rem" }}>
           <p className="eyebrow" style={{ marginBottom: "0.25rem" }}>Score Trend</p>
@@ -243,6 +339,122 @@ export default function MSMEDashboard() {
             ))}
           </div>
         </section>
+
+        {/* Credit Journey Roadmap */}
+        {journey && (
+          <section style={{ marginBottom: "2.5rem" }}>
+            <div style={{ marginBottom: "1rem" }}>
+              <p className="eyebrow" style={{ marginBottom: "0.25rem" }}>Your Credit Journey</p>
+              <h2
+                style={{
+                  fontFamily: "Playfair Display, serif",
+                  fontSize: "1.1rem",
+                  fontWeight: 600,
+                  color: "#3A342C",
+                  margin: 0,
+                }}
+              >
+                Roadmap to higher credit limits
+              </h2>
+            </div>
+
+            <div
+              style={{
+                backgroundColor: "#FAF8F3",
+                border: "1px solid rgba(201,166,107,0.2)",
+                borderTop: "3px solid #8B6914",
+                borderRadius: "5px",
+                boxShadow: "0 2px 8px rgba(58, 52, 44, 0.055)",
+                padding: "1.5rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "1rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <span
+                    style={{
+                      fontFamily: "Inter, sans-serif",
+                      fontSize: "0.72rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.07em",
+                      textTransform: "uppercase",
+                      color: "#6B6259",
+                    }}
+                  >
+                    Current Stage:
+                  </span>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      backgroundColor:
+                        journey.stage === "fully_scored"
+                          ? "#E5EDE9"
+                          : journey.stage === "established"
+                          ? "#FAF3E5"
+                          : "#FAF8F3",
+                      color:
+                        journey.stage === "fully_scored"
+                          ? "#1B3A2F"
+                          : journey.stage === "established"
+                          ? "#8B6914"
+                          : "#6B6259",
+                      border: `1px solid ${
+                        journey.stage === "fully_scored"
+                          ? "rgba(27,58,47,0.2)"
+                          : "rgba(139,105,20,0.2)"
+                      }`,
+                      borderRadius: "3px",
+                      padding: "0.25rem 0.5rem",
+                      fontSize: "0.68rem",
+                      fontFamily: "Inter, sans-serif",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {journey.stage.replace("_", " ")}
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: "0.78rem",
+                    color: "#8B6914",
+                    fontWeight: 600,
+                  }}
+                >
+                  Complete these steps → score could reach {journey.projected_score_low} – {journey.projected_score_high}
+                </div>
+              </div>
+
+              <p
+                style={{
+                  fontFamily: "Inter, sans-serif",
+                  fontSize: "0.88rem",
+                  color: "#3A342C",
+                  lineHeight: 1.6,
+                  margin: 0,
+                  backgroundColor: "rgba(201,166,107,0.06)",
+                  padding: "1rem",
+                  borderRadius: "4px",
+                  borderLeft: "3px solid #C9A66B",
+                }}
+              >
+                <strong>Next Action:</strong> {journey.next_action}
+              </p>
+            </div>
+          </section>
+        )}
 
         {/* What-If Simulator */}
         <section style={{ marginBottom: "2.5rem" }}>

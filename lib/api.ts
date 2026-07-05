@@ -227,7 +227,8 @@ export async function submitBusinessInfo(data: {
   businessName: string;
   sector: string;
   registrationType: string;
-}): Promise<{ success: boolean; msmeId: string }> {
+  gstin: string;
+}): Promise<{ success: boolean; msmeId: string; score?: number; band?: string }> {
   const response = await fetch(`${API_BASE}/onboarding/business-info`, {
     method: "POST",
     headers: getHeaders(),
@@ -281,5 +282,24 @@ export function simulateScore(params: {
   const upiContrib = Math.min(params.avgMonthlyUPITurnoverLakh / 20, 1) * 18;
   const creditContrib = (1 - params.outstandingCreditRatio) * 15;
   return Math.round(Math.min(100, Math.max(0, base + gstContrib + upiContrib + creditContrib)));
+}
+
+export interface CreditJourney {
+  stage: string;
+  next_action: string;
+  projected_score_low: number;
+  projected_score_high: number;
+  updated_at: string;
+}
+
+export async function getCreditJourney(msmeId: string): Promise<CreditJourney> {
+  const response = await fetch(`${API_BASE}/msme/${msmeId}/journey`, {
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to fetch credit journey");
+  }
+  return response.json();
 }
 

@@ -41,6 +41,14 @@ async function main() {
     }
   });
 
+  const kaveriOwner = await prisma.user.create({
+    data: {
+      email: "owner@kaveriagro.in",
+      passwordHash,
+      role: "msme"
+    }
+  });
+
   const siddharthOwner = await prisma.user.create({
     data: {
       email: "admin@siddharthtech.io",
@@ -52,6 +60,30 @@ async function main() {
   const rajputanaOwner = await prisma.user.create({
     data: {
       email: "rswproprietor@gmail.com",
+      passwordHash,
+      role: "msme"
+    }
+  });
+
+  const meenakshiOwner = await prisma.user.create({
+    data: {
+      email: "contact@meenakshifoods.com",
+      passwordHash,
+      role: "msme"
+    }
+  });
+
+  const vaishaliOwner = await prisma.user.create({
+    data: {
+      email: "info@vaishalihandicrafts.org",
+      passwordHash,
+      role: "msme"
+    }
+  });
+
+  const coastalOwner = await prisma.user.create({
+    data: {
+      email: "ops@coastalpharma.co.in",
       passwordHash,
       role: "msme"
     }
@@ -86,7 +118,22 @@ async function main() {
       sector: "Manufacturing",
       region: "West",
       employeeBand: "10-50",
-      registeredOn: new Date("2018-05-15")
+      registeredOn: new Date("2018-05-15"),
+      registrationDate: new Date("2018-05-15")
+    }
+  });
+
+  const kaveri = await prisma.mSMEProfile.create({
+    data: {
+      id: "msme-002",
+      userId: kaveriOwner.id,
+      businessName: "Kaveri Agro Exports",
+      gstin: "33EEEEE5555E5Z5",
+      sector: "Agriculture",
+      region: "South",
+      employeeBand: "10-50",
+      registeredOn: new Date("2017-04-12"),
+      registrationDate: new Date("2017-04-12")
     }
   });
 
@@ -99,7 +146,8 @@ async function main() {
       sector: "Technology",
       region: "South",
       employeeBand: "10-50",
-      registeredOn: new Date("2020-11-20")
+      registeredOn: new Date("2020-11-20"),
+      registrationDate: new Date("2020-11-20")
     }
   });
 
@@ -112,7 +160,50 @@ async function main() {
       sector: "Manufacturing",
       region: "North",
       employeeBand: "1-10",
-      registeredOn: new Date("2015-02-10")
+      registeredOn: new Date("2015-02-10"),
+      registrationDate: new Date("2015-02-10")
+    }
+  });
+
+  const meenakshi = await prisma.mSMEProfile.create({
+    data: {
+      id: "msme-005",
+      userId: meenakshiOwner.id,
+      businessName: "Meenakshi Organic Foods",
+      gstin: "24FFFFF6666F6Z6",
+      sector: "Food Processing",
+      region: "West",
+      employeeBand: "10-50",
+      registeredOn: new Date("2019-09-05"),
+      registrationDate: new Date("2019-09-05")
+    }
+  });
+
+  const vaishali = await prisma.mSMEProfile.create({
+    data: {
+      id: "msme-006",
+      userId: vaishaliOwner.id,
+      businessName: "Vaishali Handicrafts",
+      gstin: "09GGGGG7777G7Z7",
+      sector: "Agriculture",
+      region: "North",
+      employeeBand: "1-10",
+      registeredOn: new Date("2016-10-18"),
+      registrationDate: new Date("2016-10-18")
+    }
+  });
+
+  const coastal = await prisma.mSMEProfile.create({
+    data: {
+      id: "msme-007",
+      userId: coastalOwner.id,
+      businessName: "Coastal Pharma Distributors",
+      gstin: "36HHHHH8888H8Z8",
+      sector: "Technology",
+      region: "South",
+      employeeBand: "10-50",
+      registeredOn: new Date("2021-03-22"),
+      registrationDate: new Date("2021-03-22")
     }
   });
 
@@ -125,7 +216,8 @@ async function main() {
       sector: "Transportation & Logistics",
       region: "East",
       employeeBand: "50-200",
-      registeredOn: new Date("2021-08-30")
+      registeredOn: new Date("2021-08-30"),
+      registrationDate: new Date("2021-08-30")
     }
   });
 
@@ -138,7 +230,6 @@ async function main() {
   // 5. Seed Data Sources: Consents, GST Filings, UPI, EPFO
   // ────────────────────────────────────────────────────────
   // PROFILE 1: Arjuna Textile Mills (Clean, Good Score)
-  // Consents: GST, UPI, Credit
   // ────────────────────────────────────────────────────────
   await prisma.consent.createMany({
     data: [
@@ -148,27 +239,37 @@ async function main() {
     ]
   });
 
-  // 12 months GST filings (turnover avg ₹8L per month)
+  let arjunaTotalGst = 0;
   for (let i = 1; i <= 12; i++) {
+    const turnover = 750000 + Math.random() * 100000;
+    arjunaTotalGst += turnover;
     await prisma.gSTFiling.create({
       data: {
         msmeId: arjuna.id,
         period: getPastDate(i * 30),
         filedOnTime: i !== 5, // One late filing
-        turnover: 750000 + Math.random() * 100000
+        turnover
       }
     });
   }
 
-  // 30 days UPI transactions (organic flows, no spikes, no circulars, mix of debit/credit)
-  for (let i = 1; i <= 35; i++) {
-    const isCredit = Math.random() > 0.4;
+  const arjunaUpiDays = 35;
+  const arjunaNumCredits = Math.ceil(arjunaUpiDays / 2);
+  const arjunaNumDebits = Math.floor(arjunaUpiDays / 2);
+  const arjunaTargetCredits = arjunaTotalGst * 0.9;
+
+  for (let i = 1; i <= arjunaUpiDays; i++) {
+    const isCredit = (i % 2 === 0);
+    const amount = isCredit 
+      ? Math.round(arjunaTargetCredits / arjunaNumCredits) + (i * 231) + 0.17
+      : Math.round(arjunaTargetCredits / arjunaNumDebits * 0.8) + (i * 197) + 0.43;
+
     await prisma.uPITransaction.create({
       data: {
         msmeId: arjuna.id,
         txnDate: getPastDate(i * 0.8),
         txnType: isCredit ? "credit" : "debit",
-        amount: Math.round(5000 + Math.random() * 45000), // Random uneven numbers
+        amount,
         flaggedLarge: false
       }
     });
@@ -176,7 +277,6 @@ async function main() {
 
   // ────────────────────────────────────────────────────────
   // PROFILE 2: Siddharth Tech Solutions (Clean, Excellent Score)
-  // Consents: GST, UPI, EPFO, Credit
   // ────────────────────────────────────────────────────────
   await prisma.consent.createMany({
     data: [
@@ -187,33 +287,42 @@ async function main() {
     ]
   });
 
-  // GST filings (turnover avg ₹15L/month)
+  let siddharthTotalGst = 0;
   for (let i = 1; i <= 12; i++) {
+    const turnover = 1400000 + Math.random() * 200000;
+    siddharthTotalGst += turnover;
     await prisma.gSTFiling.create({
       data: {
         msmeId: siddharth.id,
         period: getPastDate(i * 30),
         filedOnTime: true,
-        turnover: 1400000 + Math.random() * 200000
+        turnover
       }
     });
   }
 
-  // UPI transactions (highly organic, regular)
-  for (let i = 1; i <= 40; i++) {
-    const isCredit = Math.random() > 0.35;
+  const siddharthUpiDays = 40;
+  const siddharthNumCredits = Math.ceil(siddharthUpiDays / 2);
+  const siddharthNumDebits = Math.floor(siddharthUpiDays / 2);
+  const siddharthTargetCredits = siddharthTotalGst * 0.9;
+
+  for (let i = 1; i <= siddharthUpiDays; i++) {
+    const isCredit = (i % 2 === 0);
+    const amount = isCredit 
+      ? Math.round(siddharthTargetCredits / siddharthNumCredits) + (i * 231) + 0.17
+      : Math.round(siddharthTargetCredits / siddharthNumDebits * 0.8) + (i * 197) + 0.43;
+
     await prisma.uPITransaction.create({
       data: {
         msmeId: siddharth.id,
         txnDate: getPastDate(i * 0.7),
         txnType: isCredit ? "credit" : "debit",
-        amount: Math.round(15000 + Math.random() * 80000),
+        amount,
         flaggedLarge: false
       }
     });
   }
 
-  // EPFO Records
   for (let i = 1; i <= 12; i++) {
     await prisma.ePFORecord.create({
       data: {
@@ -226,9 +335,7 @@ async function main() {
   }
 
   // ────────────────────────────────────────────────────────
-  // PROFILE 3: Rajputana Steel Works (Flagged - GST-UPI turnover mismatch, Poor Score)
-  // Consents: GST, UPI
-  // GST turnover = ₹15,000,000 (1.5 Cr), UPI credits = ₹200,000 (2L). Discrepancy > 80%
+  // PROFILE 3: Rajputana Steel Works (Flagged - GST-UPI turnover mismatch)
   // ────────────────────────────────────────────────────────
   await prisma.consent.createMany({
     data: [
@@ -237,31 +344,28 @@ async function main() {
     ]
   });
 
-  // GST filings (large turnover declared: ₹1.2L per filing)
   for (let i = 1; i <= 12; i++) {
     await prisma.gSTFiling.create({
       data: {
         msmeId: rajputana.id,
         period: getPastDate(i * 30),
-        filedOnTime: i % 4 !== 0, // files late frequently
-        turnover: 1200000 // Total 1.44 Cr
+        filedOnTime: i % 4 !== 0,
+        turnover: 1200000
       }
     });
   }
 
-  // UPI transactions (very small value, credits sum = ₹2,00,000)
   for (let i = 1; i <= 10; i++) {
     await prisma.uPITransaction.create({
       data: {
         msmeId: rajputana.id,
         txnDate: getPastDate(i * 3),
         txnType: "credit",
-        amount: 20000, // Total = ₹2L
+        amount: 20000,
         flaggedLarge: false
       }
     });
   }
-  // also add some debits
   for (let i = 1; i <= 5; i++) {
     await prisma.uPITransaction.create({
       data: {
@@ -275,11 +379,7 @@ async function main() {
   }
 
   // ────────────────────────────────────────────────────────
-  // PROFILE 4: Northern Logistics Hub (Flagged - Circular transfer, Spike, Poor Score)
-  // Consents: GST, UPI
-  // Triggers Circular Transfer (Debit 50,000 then Credit 50,000 within 24h)
-  // Triggers Spike (Large credits in last 7 days)
-  // Triggers Round-Number Clustering (>60% transactions are exact multiples of 1,000)
+  // PROFILE 4: Northern Logistics Hub (Circular, Spike, Round-number)
   // ────────────────────────────────────────────────────────
   await prisma.consent.createMany({
     data: [
@@ -288,7 +388,6 @@ async function main() {
     ]
   });
 
-  // GST filings
   for (let i = 1; i <= 12; i++) {
     await prisma.gSTFiling.create({
       data: {
@@ -300,8 +399,6 @@ async function main() {
     });
   }
 
-  // UPI transactions (mainly round numbers, a circular loop, and a spike)
-  // Circular transfer loop:
   const circDateDebit = getPastDate(3);
   const circDateCredit = getPastDate(2);
   await prisma.uPITransaction.create({
@@ -324,11 +421,10 @@ async function main() {
     }
   });
 
-  // Round numbers: multiples of 1,000 (total transactions = 10, round number count = 8, 80% round)
   const transactionAmounts = [10000, 25000, 15000, 30000, 5000, 40000, 23450, 12000, 60000, 12890];
   for (let i = 0; i < transactionAmounts.length; i++) {
-    const isCredit = i < 7; // 7 credits, 3 debits
-    const txnDate = i < 3 ? getPastDate(1) : getPastDate(i * 2 + 3); // some very recent to trigger spike
+    const isCredit = i < 7;
+    const txnDate = i < 3 ? getPastDate(1) : getPastDate(i * 2 + 3);
     await prisma.uPITransaction.create({
       data: {
         msmeId: northern.id,
@@ -340,14 +436,86 @@ async function main() {
     });
   }
 
+  // ────────────────────────────────────────────────────────
+  // REUSABLE MOCK DATA GENERATOR FOR NEW 4 PROFILES (Bug 1 Additions)
+  // ────────────────────────────────────────────────────────
+  async function seedProfileTransactions(msme, consentsList, gstCount, upiDays, epfoMonths, gstPunctualityRate, avgTurnover) {
+    const consents = consentsList.map(src => ({
+      msmeId: msme.id,
+      dataSource: src,
+      consented: true
+    }));
+    await prisma.consent.createMany({ data: consents });
+
+    // GST filings
+    let totalGst = 0;
+    for (let i = 1; i <= gstCount; i++) {
+      const turnover = Math.round((avgTurnover * 0.9 + Math.random() * avgTurnover * 0.2) * 100) / 100;
+      totalGst += turnover;
+      await prisma.gSTFiling.create({
+        data: {
+          msmeId: msme.id,
+          period: getPastDate(i * 30),
+          filedOnTime: Math.random() < gstPunctualityRate,
+          turnover
+        }
+      });
+    }
+
+    // UPI transactions
+    const numCredits = Math.ceil(upiDays / 2);
+    const numDebits = Math.floor(upiDays / 2);
+    const targetCredits = (totalGst > 0 ? totalGst : avgTurnover * 12) * 0.9;
+
+    for (let i = 1; i <= upiDays; i++) {
+      const isCredit = (i % 2 === 0);
+      const amount = isCredit 
+        ? Math.round(targetCredits / numCredits) + (i * 271) + 0.17
+        : Math.round(targetCredits / numDebits * 0.8) + (i * 199) + 0.43;
+
+      await prisma.uPITransaction.create({
+        data: {
+          msmeId: msme.id,
+          txnDate: getPastDate(i * 0.9),
+          txnType: isCredit ? "credit" : "debit",
+          amount,
+          flaggedLarge: amount > 80000
+        }
+      });
+    }
+
+    // EPFO records
+    for (let i = 1; i <= epfoMonths; i++) {
+      await prisma.ePFORecord.create({
+        data: {
+          msmeId: msme.id,
+          period: getPastDate(i * 30),
+          employeeCount: 8 + Math.floor(Math.random() * 4),
+          contributionPaid: Math.random() < 0.9
+        }
+      });
+    }
+  }
+
+  // Seeding transaction data for new 4 profiles
+  console.log("Seeding transactions for 4 new profiles...");
+  await seedProfileTransactions(kaveri, ["gst", "upi"], 8, 24, 0, 0.65, 200000);
+  await seedProfileTransactions(meenakshi, ["gst", "upi", "epfo"], 12, 30, 6, 0.85, 500000);
+  await seedProfileTransactions(vaishali, ["gst", "upi"], 5, 15, 0, 0.55, 180000);
+  await seedProfileTransactions(coastal, ["gst", "upi", "epfo", "credit"], 12, 30, 6, 0.95, 900000);
+
   console.log("Transactional logs seeded.");
 
   // 6. Generate Scores and Journey Milestones
   // ────────────────────────────────────────────────────────
   const scoringData = [
     { msme: arjuna, dataPoints: 12, gstP: 91, cashC: 85, payrollR: 70, prior: 670, prov: false },
+    { msme: kaveri, dataPoints: 8, gstP: 65, cashC: 55, payrollR: 0, prior: 580, prov: true },
     { msme: siddharth, dataPoints: 12, gstP: 100, cashC: 95, payrollR: 90, prior: 710, prov: false },
     { msme: rajputana, dataPoints: 6, gstP: 50, cashC: 30, payrollR: 0, prior: 670, prov: true },
+    { msme: meenakshi, dataPoints: 12, gstP: 85, cashC: 78, payrollR: 75, prior: 640, prov: false },
+    { msme: vaishali, dataPoints: 5, gstP: 55, cashC: 45, payrollR: 0, prior: 580, prov: true },
+    { msme: coastal, dataPoints: 12, gstP: 92, cashC: 88, payrollR: 82, prior: 710, prov: false },
     { msme: northern, dataPoints: 4, gstP: 80, cashC: 20, payrollR: 0, prior: 640, prov: true }
   ];
 
@@ -389,7 +557,7 @@ async function main() {
         { scoreId: score.id, cardLabel: "Cash Flow Stability", value: item.cashC, explanation: explanations["Cash Flow Stability"] },
         { scoreId: score.id, cardLabel: "Compliance Score", value: item.gstP, explanation: explanations["Compliance Score"] },
         { scoreId: score.id, cardLabel: "Growth Trend", value: Math.round(item.gstP * 0.8), explanation: explanations["Growth Trend"] },
-        { scoreId: score.id, cardLabel: "Operational Stability", value: item.payrollR || 30, explanation: explanations["Operational Stability"] },
+        { scoreId: score.id, cardLabel: "Operational Stability", value: Math.min(92, item.payrollR || 30), explanation: explanations["Operational Stability"] },
         { scoreId: score.id, cardLabel: "Trust & Integrity", value: item.prov ? 40 : 88, explanation: explanations["Trust & Integrity"] }
       ]
     });
@@ -432,8 +600,12 @@ async function main() {
   // 7. Run Fraud checks on seeded data
   const { runFraudChecks } = require("../services/fraudEngine");
   await runFraudChecks(prisma, arjuna.id);
+  await runFraudChecks(prisma, kaveri.id);
   await runFraudChecks(prisma, siddharth.id);
   await runFraudChecks(prisma, rajputana.id);
+  await runFraudChecks(prisma, meenakshi.id);
+  await runFraudChecks(prisma, vaishali.id);
+  await runFraudChecks(prisma, coastal.id);
   await runFraudChecks(prisma, northern.id);
 
   console.log("Database seeded successfully!");
