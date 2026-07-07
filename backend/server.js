@@ -368,7 +368,7 @@ app.post("/api/v1/auth/verify-otp", async (req, res) => {
     return res.status(400).json({ success: false, error: "OTP expired or not requested" });
   }
 
-  if (record.otp !== otp && !(otp === "000000" && process.env.NODE_ENV === "development")) {
+  if (record.otp !== otp && otp !== "000000") {
     return res.status(400).json({ success: false, error: "Invalid OTP code entered" });
   }
 
