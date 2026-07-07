@@ -7,9 +7,9 @@ import { cn } from "@/lib/utils";
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "MSME Financial Health Card — Trusted MSME Credit Intelligence",
+  title: "CreditBridge — Trusted MSME Credit Intelligence",
   description:
-    "MSME Financial Health Card (FHC) provides transparent, blockchain-verified financial health scores for MSMEs, enabling informed lending decisions for banks and financial institutions.",
+    "CreditBridge provides transparent, blockchain-verified financial health scores for MSMEs, enabling informed lending decisions for banks and financial institutions.",
   keywords: "MSME, financial health, credit score, GST, UPI, EPFO, fintech, lending",
 };
 

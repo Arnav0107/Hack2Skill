@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, type UserRole } from "@/lib/auth";
 import { loginUser, verifyOtp } from "@/lib/api";
+import CreditBridgeLogo from "@/components/ui/CreditBridgeLogo";
 
 
 import SplitText from "@/components/ui/textanimation";
@@ -59,7 +60,7 @@ export default function LoginPage() {
   };
 
   const ROLES: { value: UserRole; label: string; description: string }[] = [
-    { value: "msme", label: "MSME", description: "View your Financial Health Card" },
+    { value: "msme", label: "MSME", description: "View your CreditBridge Profile" },
     { value: "bank_officer", label: "Bank Officer", description: "Review applicant portfolio" },
     { value: "admin", label: "Admin", description: "Manage users and roles" },
   ];
@@ -128,51 +129,17 @@ export default function LoginPage() {
           >
             {/* Wordmark */}
             <div style={{ marginBottom: "3rem" }}>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  marginBottom: "0.75rem",
-                }}
-              >
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    backgroundColor: "#1B3A2F",
-                    borderRadius: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <span style={{ fontFamily: "Playfair Display, serif", fontSize: "1rem", fontWeight: 700, color: "#C9A66B" }}>
-                    F
-                  </span>
-                </div>
-                <span
-                  style={{
-                    fontFamily: "Playfair Display, serif",
-                    fontSize: "1.15rem",
-                    fontWeight: 600,
-                    color: "#1B3A2F",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  Financial Health Card
-                </span>
-              </div>
+              <CreditBridgeLogo showText={true} width={48} height={48} titleSize="56px" subtitleSize="14px" />
               <SplitText
                 tag="h1"
                 text="Trusted credit intelligence for India's MSMEs."
                 className=""
                 style={{
                   fontFamily: "Playfair Display, serif",
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
+                  fontSize: "48px",
                   fontWeight: 600,
                   color: "#1B3A2F",
-                  margin: "0 0 1rem",
+                  margin: "1.5rem 0 1rem",
                   lineHeight: 1.15,
                 }}
                 splitType="chars"
@@ -184,7 +151,7 @@ export default function LoginPage() {
               />
               <SplitText
                 tag="p"
-                text="A blockchain-verified Financial Health Card built on GST, UPI, EPFO, and credit bureau data — giving lenders the confidence to say yes."
+                text="A blockchain-verified CreditBridge profile built on GST, UPI, EPFO, and credit bureau data — giving lenders the confidence to say yes."
                 style={{
                   fontFamily: "Inter, sans-serif",
                   fontSize: "1rem",
@@ -227,9 +194,6 @@ export default function LoginPage() {
 
             {/* Gold divider */}
             <div style={{ marginTop: "3rem", height: "1px", backgroundColor: "rgba(201,166,107,0.3)", maxWidth: "80px" }} />
-            <p style={{ fontFamily: "Inter, sans-serif", fontSize: "0.7rem", color: "#9B9188", marginTop: "0.75rem" }}>
-              MSME Financial Health Card · Hackathon Demo · 2025
-            </p>
           </div>
         </div>
 

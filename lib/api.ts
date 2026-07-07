@@ -228,7 +228,11 @@ export async function submitBusinessInfo(data: {
   sector: string;
   registrationType: string;
   gstin: string;
-}): Promise<{ success: boolean; msmeId: string; score?: number; band?: string }> {
+  ownerName?: string;
+  city?: string;
+  annualTurnover?: string;
+  employeeCount?: string;
+}): Promise<{ success: boolean; msmeId: string }> {
   const response = await fetch(`${API_BASE}/onboarding/business-info`, {
     method: "POST",
     headers: getHeaders(),
@@ -299,6 +303,52 @@ export async function getCreditJourney(msmeId: string): Promise<CreditJourney> {
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
     throw new Error(errData.error || "Failed to fetch credit journey");
+  }
+  return response.json();
+}
+
+export async function sendOtp(email: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/auth/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.error || "Failed to send OTP" };
+    }
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Network error" };
+  }
+}
+
+export async function lookupGstin(gstin: string): Promise<{ success: boolean; business?: any; error?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/onboarding/lookup-gstin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gstin }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.error || "GSTIN lookup failed" };
+    }
+    return { success: true, business: data.business };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Network error" };
+  }
+}
+
+export async function recomputeScore(id: string): Promise<{ success: boolean; score: number; band: string }> {
+  const response = await fetch(`${API_BASE}/msme/${id}/score/recompute`, {
+    method: "POST",
+    headers: getHeaders(),
+  });
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || "Failed to recompute score");
   }
   return response.json();
 }

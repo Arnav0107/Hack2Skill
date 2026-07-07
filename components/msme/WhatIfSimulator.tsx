@@ -13,12 +13,15 @@ export default function WhatIfSimulator({ baseScore }: WhatIfSimulatorProps) {
   const [gstCompliance, setGstCompliance] = useState(75);
   const [upiTurnover, setUpiTurnover] = useState(8);
   const [creditRatio, setCreditRatio] = useState(0.35);
+  const [isModified, setIsModified] = useState(false);
 
-  const simScore = simulateScore({
+  const calculatedSimScore = simulateScore({
     gstCompliancePercent: gstCompliance,
     avgMonthlyUPITurnoverLakh: upiTurnover,
     outstandingCreditRatio: creditRatio,
   });
+
+  const simScore = isModified ? calculatedSimScore : baseScore;
 
   const band = getBandFromScore(simScore);
   const color = getScoreBandColor(band);
@@ -32,7 +35,7 @@ export default function WhatIfSimulator({ baseScore }: WhatIfSimulatorProps) {
       max: 100,
       step: 1,
       suffix: "%",
-      onChange: setGstCompliance,
+      onChange: (v: number) => { setGstCompliance(v); setIsModified(true); },
       hint: "Percentage of months with on-time GST return filing",
     },
     {
@@ -43,7 +46,7 @@ export default function WhatIfSimulator({ baseScore }: WhatIfSimulatorProps) {
       max: 50,
       step: 0.5,
       suffix: "L",
-      onChange: setUpiTurnover,
+      onChange: (v: number) => { setUpiTurnover(v); setIsModified(true); },
       hint: "Average monthly UPI credit in lakhs (₹)",
     },
     {
@@ -54,7 +57,7 @@ export default function WhatIfSimulator({ baseScore }: WhatIfSimulatorProps) {
       max: 100,
       step: 1,
       suffix: "%",
-      onChange: (v: number) => setCreditRatio(v / 100),
+      onChange: (v: number) => { setCreditRatio(v / 100); setIsModified(true); },
       hint: "Outstanding credit vs. credit limit (lower is better)",
     },
   ];

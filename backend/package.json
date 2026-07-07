@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "dev": "set NODE_ENV=development&& node server.js",
     "db:migrate": "npx prisma migrate dev --name init",
     "db:seed": "node prisma/seed.js"
   },

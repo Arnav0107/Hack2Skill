@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
+import CreditBridgeLogo from "@/components/ui/CreditBridgeLogo";
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -23,7 +25,7 @@ export default function Navbar() {
         { href: "/admin", label: "Users & Roles" },
       ]
     : [
-        { href: "/dashboard", label: "My Health Card" },
+        { href: "/dashboard", label: "CreditBridge" },
         { href: "/onboarding", label: "Data Sources" },
       ];
 
@@ -53,18 +55,11 @@ export default function Navbar() {
         <Link
           href={user?.role === "bank_officer" ? "/bank" : user?.role === "admin" ? "/admin" : "/dashboard"}
           style={{
-            fontFamily: "Playfair Display, serif",
-            fontSize: "1.1rem",
-            fontWeight: 600,
-            color: "#F7F4ED",
             textDecoration: "none",
-            letterSpacing: "0.01em",
             whiteSpace: "nowrap",
           }}
         >
-          FHC
-          <span style={{ color: "#C9A66B", margin: "0 0.15em" }}>·</span>
-          <span style={{ fontWeight: 400 }}>Financial Health Card</span>
+          <CreditBridgeLogo showText={true} theme="dark" width={32} height={32} />
         </Link>
 
         {/* Nav links */}

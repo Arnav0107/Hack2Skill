@@ -58,13 +58,13 @@ if (!transporter) {
 // Format and send OTP emails
 async function sendOtpEmail(email, otp) {
   const mailOptions = {
-    from: process.env.SMTP_FROM || '"Saksham Team" <no-reply@saksham-fhc.in>',
+    from: process.env.SMTP_FROM || '"CreditBridge Team" <no-reply@creditbridge.in>',
     to: email,
-    subject: "Saksham Secure OTP Verification Code",
+    subject: "CreditBridge Secure OTP Verification Code",
     text: `Your 6-digit verification code is: ${otp}. This code is valid for 10 minutes.`,
     html: `
       <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #c9a66b; border-radius: 8px;">
-        <h2 style="color: #1b3a2f; text-align: center; border-bottom: 2px solid #c9a66b; padding-bottom: 10px; margin-top: 0;">Saksham Identity Verification</h2>
+        <h2 style="color: #1b3a2f; text-align: center; border-bottom: 2px solid #c9a66b; padding-bottom: 10px; margin-top: 0;">CreditBridge Identity Verification</h2>
         <p style="font-size: 16px; color: #3a342c;">Hello,</p>
         <p style="font-size: 16px; color: #3a342c;">Your one-time password (OTP) verification code for accessing your account is:</p>
         <div style="text-align: center; margin: 30px 0;">
@@ -368,7 +368,7 @@ app.post("/api/v1/auth/verify-otp", async (req, res) => {
     return res.status(400).json({ success: false, error: "OTP expired or not requested" });
   }
 
-  if (record.otp !== otp && otp !== "000000") {
+  if (record.otp !== otp && !(otp === "000000" && process.env.NODE_ENV === "development")) {
     return res.status(400).json({ success: false, error: "Invalid OTP code entered" });
   }
 
@@ -746,6 +746,102 @@ async function generateOnboardingMockData(profileId, sector, registrationDate) {
   await prisma.consent.createMany({ data: consentData });
 }
 
+// POST /api/v1/onboarding/lookup-gstin (Public GSTIN lookup)
+app.post("/api/v1/onboarding/lookup-gstin", async (req, res) => {
+  const { gstin } = req.body;
+  if (!gstin) {
+    return res.status(400).json({ success: false, error: "GSTIN is required" });
+  }
+
+  // Validate 15-character alphanumeric
+  if (!/^[a-zA-Z0-9]{15}$/.test(gstin)) {
+    return res.status(400).json({ success: false, error: "GSTIN must be exactly 15 alphanumeric characters" });
+  }
+
+  const normalizedGstin = gstin.toUpperCase();
+
+  const mockProfiles = {
+    "27ABCDE1234F1Z5": {
+      businessName: "Ramesh Textiles Pvt Ltd",
+      ownerName: "Ramesh Kumar",
+      sector: "Manufacturing",
+      registrationType: "Private Limited",
+      registeredSince: "2018",
+      city: "Surat, Gujarat",
+      gstStatus: "Active",
+      maskedMobile: "XXXXXX7890",
+      mobileNumber: "9876547890"
+    },
+    "27XYZAB5678G1Z3": {
+      businessName: "Kumar Foods Pvt Ltd",
+      ownerName: "Vijay Kumar",
+      sector: "Food Processing",
+      registrationType: "Private Limited",
+      registeredSince: "2021",
+      city: "Mumbai, Maharashtra",
+      gstStatus: "Active",
+      maskedMobile: "XXXXXX4321",
+      mobileNumber: "9876544321"
+    },
+    "27PQRST9012H1Z7": {
+      businessName: "Priya Garments",
+      ownerName: "Priya Sharma",
+      sector: "Retail Trade",
+      registrationType: "Proprietorship",
+      registeredSince: "2024",
+      city: "Jaipur, Rajasthan",
+      gstStatus: "Active",
+      maskedMobile: "XXXXXX5678",
+      mobileNumber: "9876545678"
+    }
+  };
+
+  if (mockProfiles[normalizedGstin]) {
+    return res.json({
+      success: true,
+      business: mockProfiles[normalizedGstin]
+    });
+  }
+
+  // Deterministic generator for other valid GSTINs
+  let hash = 0;
+  for (let i = 0; i < normalizedGstin.length; i++) {
+    hash = normalizedGstin.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+
+  const sectors = ["Manufacturing", "Retail Trade", "Services", "Wholesale Trade", "Food Processing"];
+  const regTypes = ["Private Limited", "Proprietorship", "Partnership", "LLP"];
+  const cities = ["Noida, Uttar Pradesh", "Delhi, NCR", "Chennai, Tamil Nadu", "Bangalore, Karnataka", "Pune, Maharashtra"];
+  const ownerNames = ["Aarav Patel", "Aditya Sharma", "Vikram Singh", "Sanjay Gupta", "Rajesh Khanna"];
+  const businessSuffixes = ["Enterprises", "Logistics", "Ventures", "Trading Co", "Solutions"];
+
+  const sectorSelected = sectors[hash % sectors.length];
+  const regTypeSelected = regTypes[(hash >> 2) % regTypes.length];
+  const citySelected = cities[(hash >> 4) % cities.length];
+  const ownerNameSelected = ownerNames[(hash >> 6) % ownerNames.length];
+  const businessNameSelected = `${ownerNameSelected.split(" ")[0]} ${businessSuffixes[(hash >> 8) % businessSuffixes.length]}`;
+  const yearSelected = String(2015 + (hash % 10)); // 2015 to 2024
+  
+  const lastFour = String(1000 + (hash % 9000));
+  const mobileNumberSelected = `987654${lastFour}`;
+
+  return res.json({
+    success: true,
+    business: {
+      businessName: businessNameSelected,
+      ownerName: ownerNameSelected,
+      sector: sectorSelected,
+      registrationType: regTypeSelected,
+      registeredSince: yearSelected,
+      city: citySelected,
+      gstStatus: "Active",
+      maskedMobile: `XXXXXX${lastFour}`,
+      mobileNumber: mobileNumberSelected
+    }
+  });
+});
+
 // 2. Onboarding Endpoints (Linked to User JWT Session)
 // POST /api/v1/onboarding/business-info
 app.post("/api/v1/onboarding/business-info", authenticateToken, async (req, res) => {
@@ -848,20 +944,9 @@ app.post("/api/v1/onboarding/business-info", authenticateToken, async (req, res)
       });
     }
 
-    // Generate complete mock transaction files
-    await generateOnboardingMockData(profile.id, finalSector, finalRegistrationDate);
-
-    // Run scoring, fraud engine, and blockchain anchoring immediately
-    const result = await triggerScoreCalculation(profile.id);
-
-    const scoreNorm = normalizeScore(result.score);
-    const bandNorm = getBandFromScore(scoreNorm);
-
     res.json({
       success: true,
-      msmeId: profile.id,
-      score: scoreNorm,
-      band: bandNorm
+      msmeId: profile.id
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -1590,31 +1675,7 @@ app.post("/api/v1/msme/:id/fraud-check/run", authenticateToken, async (req, res)
   }
 });
 
-// 5. Credit Journey Endpoint
-// GET /api/v1/msme/:id/journey
-app.get("/api/v1/msme/:id/journey", authenticateToken, async (req, res) => {
-  const { id } = req.params;
-  try {
-    const milestone = await prisma.journeyMilestone.findFirst({
-      where: { msmeId: id },
-      orderBy: { updatedAt: "desc" }
-    });
 
-    if (!milestone) {
-      return res.status(404).json({ success: false, error: "Credit journey milestone not found" });
-    }
-
-    res.json({
-      stage: milestone.stage,
-      next_action: milestone.nextAction,
-      projected_score_low: milestone.projectedScoreLow,
-      projected_score_high: milestone.projectedScoreHigh,
-      updated_at: milestone.updatedAt.toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 // 6. Bank Officer Dashboard Endpoints
 // GET /api/v1/officer/applicants
@@ -1835,7 +1896,7 @@ app.get("/api/v1/audit/:id", async (req, res) => {
       blockHash: "0x" + record.payloadHash.slice(2).split("").reverse().join(""),
       transactionId: record.chainTxHash,
       ipfsCid: record.ipfsCid,
-      modelVersion: record.score.modelVersion || "FHC-v1.0-hackathon",
+      modelVersion: record.score.modelVersion || "CB-v1.0-hackathon",
       dataCompleteness: {
         connected: profile ? profile.consents.filter(c => c.consented).length : 0,
         total: 4

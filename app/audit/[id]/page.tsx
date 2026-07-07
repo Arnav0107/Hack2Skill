@@ -197,7 +197,7 @@ export default function AuditPage() {
               {[
                 { label: "MSME ID", value: record.msmeId, mono: false },
                 { label: "Timestamp", value: formatDatetime(record.timestamp), mono: false },
-                { label: "Model Version", value: record.modelVersion || "FHC-v1.0-hackathon", mono: false },
+                { label: "Model Version", value: record.modelVersion || "CB-v1.0-hackathon", mono: false },
                 {
                   label: "Transaction ID",
                   value: (
